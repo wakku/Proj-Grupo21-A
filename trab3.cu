@@ -9,11 +9,11 @@ Leonardo Rebelo - 5897894
 #include <stdlib.h>
 
 
-#define sizeX 720  // Invertido
-#define sizeY 1280
+#define sizeX 40000  // Invertido
+#define sizeY 4048
 #define nThreadsPorBloco 512
-#define imEntrada "HD.ppm"
-#define imSaida "out_4k_2.ppm"
+#define imEntrada "GDE_RGB.PPM"
+#define imSaida "out.ppm"
 
 
 __global__ void blur( int *imagem_in, int *imagem_out, int colorOffset ) {
