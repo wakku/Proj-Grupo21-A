@@ -3,11 +3,14 @@ Fernando Gorodscy - 7152354
 Leonardo Rebelo - 5897894
 */
 
+#include <cv.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
 
+using namespace std;
+using namespace cv;
 
 #define sizeX 40000  // Invertido
 #define sizeY 4048
