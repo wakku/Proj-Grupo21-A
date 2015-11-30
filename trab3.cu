@@ -12,9 +12,6 @@ Leonardo Rebelo - 5897894
 #define sizeX 40000  // Invertido
 #define sizeY 4048
 #define nThreadsPorBloco 512
-#define imEntrada "GDE_RGB.PPM"
-#define imSaida "out.ppm"
-
 
 __global__ void blur( int *imagem_in, int *imagem_out, int colorOffset ) {
 
@@ -38,7 +35,7 @@ __global__ void blur( int *imagem_in, int *imagem_out, int colorOffset ) {
     imagem_out[ colorOffset + offset ] =  media;
 }
 
-int main()
+int main(int argc, const char* argv[])
 {   
     time_t inicioTempo = time(NULL);
     time_t tempo;
@@ -82,7 +79,7 @@ int main()
 
     // Abre o arquivo
     FILE * file;
-    file = fopen( imEntrada  , "r");
+    file = fopen( argv[0]  , "r");
 
     //Pula as 4 primeiras linhas, que sao comentarios e informacoes da imagem
     for ( i = 0; i < 4; i ++)
@@ -162,7 +159,7 @@ int main()
     //Salva de volta como arquivo ppm
     // Abrir o arquivo
     FILE * out;
-    out = fopen( imSaida , "w+");
+    out = fopen( argv[1] , "w+");
     char saida[1000];
     char aux[100];
 
@@ -226,9 +223,6 @@ int main()
             bi++;
             continue;
         }
-
-
-
     }
 
     fclose(out);
