@@ -20,30 +20,27 @@ __global__ void blur( Mat *in_image, int *out_image[3]) {
     int v, i, j, k, w;        
     float media_R, media_G, media_B;
 
-    for(i = 0; i < in_image->rows; i++){
-        for(j = 0; j < in_image->cols; j++){
+    int offset = threadIdx.x + blockIdx.x * blockDim.x;
             
-            media_R = 0;
-            media_G = 0;
-            media_B = 0;
-            v = 0;
+    media_R = 0;
+    media_G = 0;
+    media_B = 0;
+    v = 0;
 
-            for(k = -2; k <= 2; k++){
-                for(w = -2; w <= 2; w++){
-                    if((i + k >= 0) && (i + k < in_image->rows) && (j + w >= 0) && (j + w < in_image->cols)){
-                        media_R += pixelPtr[(i+k)*in_image->cols + (j+w) + 0];
-                        media_G += pixelPtr[(i+k)*in_image->cols + (j+w) + 1];
-                        media_B += pixelPtr[(i+k)*in_image->cols + (j+w) + 2];
-                        v++;
-                    }
-                }
+    for(k = -2; k <= 2; k++){
+        for(w = -2; w <= 2; w++){
+            if((i + k >= 0) && (i + k < in_image->rows) && (j + w >= 0) && (j + w < in_image->cols)){
+                media_R += pixelPtr[(i+k)*in_image->cols + (j+w) + 0 + offset];
+                media_G += pixelPtr[(i+k)*in_image->cols + (j+w) + 1 + offset];
+                media_B += pixelPtr[(i+k)*in_image->cols + (j+w) + 2 + offset];
+                v++;
             }
-    
-            out_image[0][i * in_image->cols + j] = media_R/v;
-            out_image[1][i * in_image->cols + j] = media_G/v;
-            out_image[2][i * in_image->cols + j] = media_B/v;
         }
     }
+
+    out_image[0][i * in_image->cols + j + offset] = media_R/v;
+    out_image[1][i * in_image->cols + j + offset] = media_G/v;
+    out_image[2][i * in_image->cols + j + offset] = media_B/v;
 }
 
 int main(int argc, const char* argv[]){
@@ -88,7 +85,7 @@ int main(int argc, const char* argv[]){
     // printf("Aplicando filtro de blur...\n");
 
     //Realiza o filtro blur em cada matriz
-    blur<<<in_image.elemSize()/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image, dev_out_image);
+    blur<<<in_image.rows*in_image.cols/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image, dev_out_image);
 
     tempo = time(NULL) - inicioTempo;
     // printf("%ld : Filtro Aplicado.\n",tempo);
