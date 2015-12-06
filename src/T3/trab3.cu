@@ -16,9 +16,9 @@ using namespace cv;
 
 __global__ void blur( Mat *in_image, int *out_image[3]) {
     
-	uint8_t* pixelPtr = (uint8_t*)in_image->data;
-	int v, i, j, k, w;        
-	float media_R, media_G, media_B;
+    uint8_t* pixelPtr = (uint8_t*)in_image->data;
+    int v, i, j, k, w;        
+    float media_R, media_G, media_B;
 
     for(i = 0; i < in_image->rows; i++){
         for(j = 0; j < in_image->cols; j++){
@@ -38,7 +38,7 @@ __global__ void blur( Mat *in_image, int *out_image[3]) {
                     }
                 }
             }
-	
+    
             out_image[0][i * in_image->cols + j] = media_R/v;
             out_image[1][i * in_image->cols + j] = media_G/v;
             out_image[2][i * in_image->cols + j] = media_B/v;
@@ -52,18 +52,15 @@ int main(int argc, const char* argv[]){
     time_t tempo;
 
     //Matrizes que guardam os canais de cor
-	Mat in_image;
-	Mat out_image;
-    unsigned char *int_out_image;
-    
-    // Leitura da imagem de entrada
+    Mat in_image;
+    Mat out_image;
+    int *int_out_image[3];
+
     in_image = imread(argv[1], 1);
     out_image = imread(argv[1], 1);
 
-    unsigned char *dev_out_image;
+    int *dev_out_image[3];
     Mat *dev_in_image;
-
-    const int size = in_image.cols * in_image.rows;
 
     // Alocacao de memoria no device
     cudaMalloc( (void**)&dev_in_image, in_image.elemSize());
@@ -112,7 +109,7 @@ int main(int argc, const char* argv[]){
         }
     }
 
-	imwrite(argv[2], out_image);
+    imwrite(argv[2], out_image);
 
     tempo = time(NULL) - inicioTempo;
     cout << tempo << ": Arquivo salvo em " << argv[2] << endl;
