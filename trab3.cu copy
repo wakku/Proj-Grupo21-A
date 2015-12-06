@@ -39,9 +39,9 @@ __global__ void blur( Mat *in_image, int *out_image[3]) {
                 }
             }
 	
-            out_image[0][i * in_image->cols + j] = 0;//media_R/v;
-            out_image[1][i * in_image->cols + j] = 0;//media_G/v;
-            out_image[2][i * in_image->cols + j] = 0;//media_B/v;
+            out_image[0][i * in_image->cols + j] = media_R/v;
+            out_image[1][i * in_image->cols + j] = media_G/v;
+            out_image[2][i * in_image->cols + j] = media_B/v;
         }
     }
 }
@@ -54,38 +54,32 @@ int main(int argc, const char* argv[]){
     //Matrizes que guardam os canais de cor
 	Mat in_image;
 	Mat out_image;
-    unsigned char *int_out_image;
-    
-    // Leitura da imagem de entrada
-    in_image = imread(argv[1], 1);
-    out_image = imread(argv[1], 1);
+    int *int_out_image[3];
 
-    unsigned char *dev_out_image;
+    in_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+    out_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+
+    int *dev_out_image[3];
     Mat *dev_in_image;
 
-    const int size = in_image.cols * in_image.rows;
-
     // Alocacao de memoria no device
-    cudaMalloc( (void**)&dev_in_image, in_image.elemSize());
-    cudaMalloc( (void**)&dev_out_image[0], in_image.cols*in_image.rows*sizeof(int));
-    cudaMalloc( (void**)&dev_out_image[1], in_image.cols*in_image.rows*sizeof(int));
-    cudaMalloc( (void**)&dev_out_image[2], in_image.cols*in_image.rows*sizeof(int));
+    cudaMalloc( (void**)&dev_in_image, in_image.cols*in_image.rows*in_image.elemSize());
+    cudaMalloc( (int*)dev_out_image[0], in_image.cols*in_image.rows*sizeof(int));
+    cudaMalloc( (int*)dev_out_image[1], in_image.cols*in_image.rows*sizeof(int));
+    cudaMalloc( (int*)dev_out_image[2], in_image.cols*in_image.rows*sizeof(int));
 
     int_out_image[0] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
     int_out_image[1] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
     int_out_image[2] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
 
-    memset (&dev_in_image,0,in_image.elemSize());
-    memset (int_out_image[0],0,sizeof(int)*in_image.cols*in_image.rows);
-    memset (int_out_image[1],0,sizeof(int)*in_image.cols*in_image.rows);
-    memset (int_out_image[2],0,sizeof(int)*in_image.cols*in_image.rows);
+    memset (&dev_in_image,0,in_image.cols*in_image.rows*in_image.elemSize()-1);
 
     tempo = time(NULL) - inicioTempo;
     printf("Arquivo salvo na memoria principal.\n");
     printf("%ld : Copiando para memoria da placa...\n", tempo);
 
     // copia as matrizes da memoria do host para o device
-    cudaMemcpy( dev_in_image, &in_image, in_image.elemSize(), cudaMemcpyHostToDevice );
+    cudaMemcpy( dev_in_image, &in_image, in_image.cols*in_image.rows*in_image.elemSize(), cudaMemcpyHostToDevice );
 
     printf("%ld : Vetor copiado para memoria da placa.\n", tempo);
     printf("Aplicando filtro de blur...\n");
@@ -95,12 +89,15 @@ int main(int argc, const char* argv[]){
 
     tempo = time(NULL) - inicioTempo;
     printf("%ld : Filtro Aplicado.\n",tempo);
-    printf("Copiando vetor para memoria principal...\n ");
+
+    cout << "Copiando vetor para memoria principal..." << endl;
 
     // Copia de volta as matrizes da memoria do Device para o Host
-    cudaMemcpy( int_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
-    cudaMemcpy( int_out_image[1], dev_out_image[1], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
-    cudaMemcpy( int_out_image[2], dev_out_image[2], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
+    cudaMemcpy( &int_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
+    cudaMemcpy( &int_out_image[1], dev_out_image[1], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
+    cudaMemcpy( &int_out_image[2], dev_out_image[2], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
+
+    cout << "Convertendo matriz de int para matriz openCV" << endl;
 
     // Convert int to Mat
     for(int i = 0; i < in_image.rows; i++){
@@ -111,17 +108,23 @@ int main(int argc, const char* argv[]){
             out_image.at<Vec3b>(i, j)[2] = int_out_image[2][i * in_image.cols + j];
         }
     }
-
+    
+    cout << "Salvando imagem" << endl;
 	imwrite(argv[2], out_image);
 
     tempo = time(NULL) - inicioTempo;
-    cout << tempo << ": Arquivo salvo em " << argv[2] << endl;
+    cout << tempo << ": Imagem salva em " << argv[2] << endl;
+    
     cout << "Liberando memoria..." << endl;
-
     in_image.release();
     out_image.release();
     cudaFree( dev_in_image );
-    cudaFree( dev_out_image );
+    cudaFree( dev_out_image[0] );
+    cudaFree( dev_out_image[1] );
+    cudaFree( dev_out_image[2] );
+    free(int_out_image[0]);
+    free(int_out_image[1]);
+    free(int_out_image[2]);
 
     tempo = time(NULL) - inicioTempo;
     printf("%ld : Memoria liberada.\n",tempo);

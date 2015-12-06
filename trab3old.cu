@@ -14,7 +14,9 @@ using namespace cv;
 
 #define nThreadsPorBloco 512
 
-__global__ void blur( Mat *in_image, int *out_image[3]) {
+
+
+__global__ void blur( Mat *in_image, Mat *out_image) {
     
 	uint8_t* pixelPtr = (uint8_t*)in_image->data;
 	int v, i, j, k, w;        
@@ -39,9 +41,9 @@ __global__ void blur( Mat *in_image, int *out_image[3]) {
                 }
             }
 	
-            out_image[0][i * in_image->cols + j] = 0;//media_R/v;
-            out_image[1][i * in_image->cols + j] = 0;//media_G/v;
-            out_image[2][i * in_image->cols + j] = 0;//media_B/v;
+            out_image[i*in_image->cols + in_image.rows][0] = media_R/v;
+            out_image[i*in_image->cols + in_image.rows][1] = media_G/v;
+            out_image[i*in_image->cols + in_image.rows][2] = media_B/v;
         }
     }
 }
@@ -54,31 +56,19 @@ int main(int argc, const char* argv[]){
     //Matrizes que guardam os canais de cor
 	Mat in_image;
 	Mat out_image;
-    unsigned char *int_out_image;
-    
-    // Leitura da imagem de entrada
+
     in_image = imread(argv[1], 1);
     out_image = imread(argv[1], 1);
 
-    unsigned char *dev_out_image;
+    Mat *dev_out_image;
     Mat *dev_in_image;
 
-    const int size = in_image.cols * in_image.rows;
-
     // Alocacao de memoria no device
+    cudaMalloc( (void**)&dev_out_image, in_image.elemSize());
     cudaMalloc( (void**)&dev_in_image, in_image.elemSize());
-    cudaMalloc( (void**)&dev_out_image[0], in_image.cols*in_image.rows*sizeof(int));
-    cudaMalloc( (void**)&dev_out_image[1], in_image.cols*in_image.rows*sizeof(int));
-    cudaMalloc( (void**)&dev_out_image[2], in_image.cols*in_image.rows*sizeof(int));
 
-    int_out_image[0] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
-    int_out_image[1] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
-    int_out_image[2] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
-
+	memset (&dev_out_image,0,in_image.elemSize());
     memset (&dev_in_image,0,in_image.elemSize());
-    memset (int_out_image[0],0,sizeof(int)*in_image.cols*in_image.rows);
-    memset (int_out_image[1],0,sizeof(int)*in_image.cols*in_image.rows);
-    memset (int_out_image[2],0,sizeof(int)*in_image.cols*in_image.rows);
 
     tempo = time(NULL) - inicioTempo;
     printf("Arquivo salvo na memoria principal.\n");
@@ -86,6 +76,7 @@ int main(int argc, const char* argv[]){
 
     // copia as matrizes da memoria do host para o device
     cudaMemcpy( dev_in_image, &in_image, in_image.elemSize(), cudaMemcpyHostToDevice );
+    cudaMemcpy( dev_out_image, &out_image, in_image.elemSize(), cudaMemcpyHostToDevice );
 
     printf("%ld : Vetor copiado para memoria da placa.\n", tempo);
     printf("Aplicando filtro de blur...\n");
@@ -98,25 +89,13 @@ int main(int argc, const char* argv[]){
     printf("Copiando vetor para memoria principal...\n ");
 
     // Copia de volta as matrizes da memoria do Device para o Host
-    cudaMemcpy( int_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
-    cudaMemcpy( int_out_image[1], dev_out_image[1], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
-    cudaMemcpy( int_out_image[2], dev_out_image[2], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
-
-    // Convert int to Mat
-    for(int i = 0; i < in_image.rows; i++){
-        for(int j = 0; j < in_image.cols; j++){
-    
-            out_image.at<Vec3b>(i, j)[0] = int_out_image[0][i * in_image.cols + j];
-            out_image.at<Vec3b>(i, j)[1] = int_out_image[1][i * in_image.cols + j];
-            out_image.at<Vec3b>(i, j)[2] = int_out_image[2][i * in_image.cols + j];
-        }
-    }
+    cudaMemcpy( &out_image, dev_out_image, in_image.elemSize(), cudaMemcpyDeviceToHost );
 
 	imwrite(argv[2], out_image);
 
     tempo = time(NULL) - inicioTempo;
-    cout << tempo << ": Arquivo salvo em " << argv[2] << endl;
-    cout << "Liberando memoria..." << endl;
+    cout << tempo << " : Arquivo salvo em " << argv[2];
+    printf("Liberando memoria..\n");
 
     in_image.release();
     out_image.release();

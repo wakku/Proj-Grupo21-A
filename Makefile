@@ -1,10 +1,13 @@
-all: paralelo_openmp paralelo_cuda
+all: sequencial paralelo_openmp paralelo_cuda
 
-paralelo_openmp: trab2.cpp
-	g++ -I/usr/include/opencv -I/usr/include/opencv2 -L/usr/include/opencv/lib/ -g -o smooth_openmp  trab2.cpp -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_stitching -fopenmp
+sequencial: src/T2/trab2_seq.cpp 
+	g++ -I/usr/include/opencv -I/usr/include/opencv2 -L/usr/include/opencv/lib/ -g -o bin/smooth_seq  src/T2/trab2_seq.cpp -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_stitching
 
-paralelo_cuda: trab3.cu
-	nvcc trab3.cu -o smooth_cuda `pkg-config --cflags --libs opencv`
+paralelo_openmp: src/T2/trab2.cpp
+	g++ -I/usr/include/opencv -I/usr/include/opencv2 -L/usr/include/opencv/lib/ -g -o bin/smooth_openmp  src/T2/trab2.cpp -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_stitching -fopenmp
+
+paralelo_cuda: src/T3/trab3.cu
+	nvcc `pkg-config --cflags opencv` src/T3/trab3.cu -o bin/smooth_cuda `pkg-config --libs opencv`
 
 clean:
-	rm smooth_cuda smooth_openmp
+	rm bin/*
