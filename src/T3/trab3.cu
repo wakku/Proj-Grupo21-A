@@ -78,21 +78,21 @@ int main(int argc, const char* argv[]){
     memset (int_out_image[2],0,sizeof(int)*in_image.cols*in_image.rows);
 
     tempo = time(NULL) - inicioTempo;
-    printf("Arquivo salvo na memoria principal.\n");
-    printf("%ld : Copiando para memoria da placa...\n", tempo);
+    // printf("Arquivo salvo na memoria principal.\n");
+    // printf("%ld : Copiando para memoria da placa...\n", tempo);
 
     // copia as matrizes da memoria do host para o device
     cudaMemcpy( dev_in_image, &in_image, in_image.elemSize(), cudaMemcpyHostToDevice );
 
-    printf("%ld : Vetor copiado para memoria da placa.\n", tempo);
-    printf("Aplicando filtro de blur...\n");
+    // printf("%ld : Vetor copiado para memoria da placa.\n", tempo);
+    // printf("Aplicando filtro de blur...\n");
 
     //Realiza o filtro blur em cada matriz
     blur<<<in_image.elemSize()/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image, dev_out_image);
 
     tempo = time(NULL) - inicioTempo;
-    printf("%ld : Filtro Aplicado.\n",tempo);
-    printf("Copiando vetor para memoria principal...\n ");
+    // printf("%ld : Filtro Aplicado.\n",tempo);
+    // printf("Copiando vetor para memoria principal...\n ");
 
     // Copia de volta as matrizes da memoria do Device para o Host
     cudaMemcpy( int_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
@@ -112,8 +112,8 @@ int main(int argc, const char* argv[]){
     imwrite(argv[2], out_image);
 
     tempo = time(NULL) - inicioTempo;
-    cout << tempo << ": Arquivo salvo em " << argv[2] << endl;
-    cout << "Liberando memoria..." << endl;
+    // cout << tempo << ": Arquivo salvo em " << argv[2] << endl;
+    // cout << "Liberando memoria..." << endl;
 
     in_image.release();
     out_image.release();
@@ -121,7 +121,7 @@ int main(int argc, const char* argv[]){
     cudaFree( dev_out_image );
 
     tempo = time(NULL) - inicioTempo;
-    printf("%ld : Memoria liberada.\n",tempo);
+    // printf("%ld : Memoria liberada.\n",tempo);
     
     return 0;
 }
