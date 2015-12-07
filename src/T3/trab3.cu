@@ -80,8 +80,8 @@ int main(int argc, const char* argv[]){
     int_in_image[2] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
 
     tempo = time(NULL) - inicioTempo;
-    printf("Arquivo salvo na memoria principal.\n");
-    printf("%ld : Copiando para memoria da placa...\n", tempo);
+    //Arquivo salvo na memoria principal.
+    //Copiando para memoria da placa...
 
 	// Convert Mat to int**
     for(int i = 0; i < in_image.rows; i++){
@@ -103,8 +103,8 @@ int main(int argc, const char* argv[]){
 	cudaMemcpy( dev_cols, &in_image.cols, sizeof(int), cudaMemcpyHostToDevice );
 	cudaMemcpy( dev_rows, &in_image.rows, sizeof(int), cudaMemcpyHostToDevice );
 
-    printf("%ld : Vetor copiado para memoria da placa.\n", tempo);
-    printf("Aplicando filtro de blur...\n");
+    //Vetor copiado para memoria da placa.
+    //Aplicando filtro de blur...
 
     //Realiza o filtro blur em cada matriz
     blur<<<in_image.cols*in_image.rows/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image[0], dev_out_image[0], dev_cols, dev_rows);
@@ -112,8 +112,8 @@ int main(int argc, const char* argv[]){
 	blur<<<in_image.cols*in_image.rows/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image[2], dev_out_image[2], dev_cols, dev_rows);
 
     tempo = time(NULL) - inicioTempo;
-    printf("%ld : Filtro Aplicado.\n",tempo);
-    printf("Copiando vetor para memoria principal...\n ");
+    //Filtro Aplicado.
+    //Copiando vetor para memoria principal...
 
     // Copia de volta as matrizes da memoria do Device para o Host
     cudaMemcpy( int_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(int), cudaMemcpyDeviceToHost );
@@ -145,8 +145,7 @@ int main(int argc, const char* argv[]){
 	imwrite(argv[1], in_image);
 
     tempo = time(NULL) - inicioTempo;
-    cout << tempo << ": Arquivo salvo em " << argv[2] << endl;
-    cout << "Liberando memoria..." << endl;
+    //Liberando memoria...
 
     in_image.release();
     out_image.release();
@@ -154,7 +153,7 @@ int main(int argc, const char* argv[]){
     cudaFree( dev_out_image );
 
     tempo = time(NULL) - inicioTempo;
-    printf("%ld : Memoria liberada.\n",tempo);
+    //Memoria liberada.
     
     return 0;
 }
