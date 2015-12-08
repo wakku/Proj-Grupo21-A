@@ -14,11 +14,12 @@ using namespace cv;
 
 #define nThreadsPorBloco 512
 
-__global__ void blur( int *in_image, int *out_image, int *cols, int *rows) {
+__global__ void blur( unsigned char *in_image, unsigned char *out_image, int *cols, int *rows) {
     
 	int v, i, j, k, w;
 	int mediaR, mediaG, mediaB;
     int imageSize = (*cols) * (*rows);
+    int imageSizex2 = imageSize * 2;
 
 	int offset = threadIdx.x + blockIdx.x * blockDim.x;
 	i = offset/(*cols);
@@ -34,7 +35,7 @@ __global__ void blur( int *in_image, int *out_image, int *cols, int *rows) {
             if((i + k >= 0) && (i + k < *rows) && (j + w >= 0) && (j + w < *cols)){
                 mediaR += in_image[(i+k)*(*cols) + (j+w)];
                 mediaG += in_image[(i+k)*(*cols) + (j+w) + imageSize];
-                mediaB += in_image[(i+k)*(*cols) + (j+w) + imageSize];
+                mediaB += in_image[(i+k)*(*cols) + (j+w) + imageSizex2];
                 v++;
             }
         }
@@ -42,9 +43,7 @@ __global__ void blur( int *in_image, int *out_image, int *cols, int *rows) {
 
     out_image[offset] = mediaR/v;
     out_image[offset + imageSize] = mediaG/v;
-    out_image[offset + 2*imageSize] = mediaB/v;
-
-	//out_image[offset] = 0;
+    out_image[offset + imageSizex2] = mediaB/v;
 }
 
 int main(int argc, const char* argv[]){
@@ -54,23 +53,23 @@ int main(int argc, const char* argv[]){
 	Mat out_image = imread(argv[1], 1);
 
 	// Alocacao de memoria no device
-    int *dev_out_image[1];
-	cudaMalloc((void**)&dev_out_image[0], in_image.cols*in_image.rows*sizeof(int)*3);
+    unsigned char *dev_out_image[1];
+	cudaMalloc((void**)&dev_out_image[0], in_image.cols*in_image.rows*sizeof(unsigned char)*3);
 
 
-	int *dev_in_image[1];
-	cudaMalloc( (void**)&dev_in_image[0], in_image.cols*in_image.rows*sizeof(int)*3);
+	unsigned char *dev_in_image[1];
+	cudaMalloc( (void**)&dev_in_image[0], in_image.cols*in_image.rows*sizeof(unsigned char)*3);
 
 	int *dev_rows, *dev_cols;
 	cudaMalloc( (void**)&dev_cols, sizeof(int));
 	cudaMalloc( (void**)&dev_rows, sizeof(int));
     
     // Alocacao de memoria no host
-	int *int_out_image[1];
-    int_out_image[0] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows*3);
+	unsigned char *uchar_out_image[1];
+    uchar_out_image[0] = (unsigned char*) malloc(sizeof(unsigned char)*in_image.cols*in_image.rows*3);
 
-	int *int_in_image[1];
-	int_in_image[0] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows*3);
+	unsigned char *uchar_in_image[1];
+	uchar_in_image[0] = (unsigned char*) malloc(sizeof(unsigned char)*in_image.cols*in_image.rows*3);
 
     //Arquivo salvo na memoria principal.
     //Copiando para memoria da placa...
@@ -79,16 +78,16 @@ int main(int argc, const char* argv[]){
 	// Convert Mat to int**
     for(int i = 0; i < in_image.rows; i++){
         for(int j = 0; j < in_image.cols; j++){
-            int_in_image[0][i * in_image.cols + j] = in_image.at<Vec3b>(i, j)[0];
-            int_in_image[0][i * in_image.cols + j + imageSize] = in_image.at<Vec3b>(i, j)[1];
-            int_in_image[0][i * in_image.cols + j + 2*imageSize] = in_image.at<Vec3b>(i, j)[2];
+            uchar_in_image[0][i * in_image.cols + j] = in_image.at<Vec3b>(i, j)[0];
+            uchar_in_image[0][i * in_image.cols + j + imageSize] = in_image.at<Vec3b>(i, j)[1];
+            uchar_in_image[0][i * in_image.cols + j + 2*imageSize] = in_image.at<Vec3b>(i, j)[2];
         }
     }
 
     // copia as matrizes da memoria do host para o device
     //cudaMemcpy( dev_out_image, &out_image, out_image.elemSize(), cudaMemcpyHostToDevice );
-	cudaMemcpy( dev_in_image[0], int_in_image[0], in_image.cols*in_image.rows*sizeof(int)*3, cudaMemcpyHostToDevice );
-	cudaMemcpy( dev_out_image[0], int_out_image[0], in_image.cols*in_image.rows*sizeof(int)*3, cudaMemcpyHostToDevice );
+	cudaMemcpy( dev_in_image[0], uchar_in_image[0], in_image.cols*in_image.rows*sizeof(unsigned char)*3, cudaMemcpyHostToDevice );
+	cudaMemcpy( dev_out_image[0], uchar_out_image[0], in_image.cols*in_image.rows*sizeof(unsigned char)*3, cudaMemcpyHostToDevice );
 	cudaMemcpy( dev_cols, &in_image.cols, sizeof(int), cudaMemcpyHostToDevice );
 	cudaMemcpy( dev_rows, &in_image.rows, sizeof(int), cudaMemcpyHostToDevice );
 
@@ -102,15 +101,15 @@ int main(int argc, const char* argv[]){
     //Copiando vetor para memoria principal...
 
     // Copia de volta as matrizes da memoria do Device para o Host
-    cudaMemcpy( int_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(int)*3, cudaMemcpyDeviceToHost );
-	cudaMemcpy( int_in_image[0], dev_in_image[0], in_image.cols*in_image.rows*sizeof(int)*3, cudaMemcpyDeviceToHost );
+    cudaMemcpy( uchar_out_image[0], dev_out_image[0], in_image.cols*in_image.rows*sizeof(unsigned char)*3, cudaMemcpyDeviceToHost );
+	cudaMemcpy( uchar_in_image[0], dev_in_image[0], in_image.cols*in_image.rows*sizeof(unsigned char)*3, cudaMemcpyDeviceToHost );
 
     // Convert int to Mat
     for(int i = 0; i < in_image.rows; i++){
         for(int j = 0; j < in_image.cols; j++){
-            out_image.at<Vec3b>(i, j)[0] = int_out_image[0][i * in_image.cols + j];
-            out_image.at<Vec3b>(i, j)[1] = int_out_image[0][i * in_image.cols + j + imageSize];
-            out_image.at<Vec3b>(i, j)[2] = int_out_image[0][i * in_image.cols + j + 2*imageSize];
+            out_image.at<Vec3b>(i, j)[0] = uchar_out_image[0][i * in_image.cols + j];
+            out_image.at<Vec3b>(i, j)[1] = uchar_out_image[0][i * in_image.cols + j + imageSize];
+            out_image.at<Vec3b>(i, j)[2] = uchar_out_image[0][i * in_image.cols + j + 2*imageSize];
         }
     }
 
