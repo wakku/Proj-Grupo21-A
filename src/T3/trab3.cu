@@ -41,9 +41,6 @@ __global__ void blur( int *in_image, int *out_image, int *cols, int *rows) {
 }
 
 int main(int argc, const char* argv[]){
-   
-    time_t inicioTempo = time(NULL);
-    time_t tempo;
 
     //Matrizes que guardam os canais de cor
 	Mat in_image = imread(argv[1], 1);
@@ -64,9 +61,6 @@ int main(int argc, const char* argv[]){
 	int *dev_rows, *dev_cols;
 	cudaMalloc( (void**)&dev_cols, sizeof(int));
 	cudaMalloc( (void**)&dev_rows, sizeof(int));
-
-	
-
     
     // Alocacao de memoria no host
 	int *int_out_image[3];
@@ -79,7 +73,6 @@ int main(int argc, const char* argv[]){
     int_in_image[1] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
     int_in_image[2] = (int*) malloc(sizeof(int)*in_image.cols*in_image.rows);
 
-    tempo = time(NULL) - inicioTempo;
     //Arquivo salvo na memoria principal.
     //Copiando para memoria da placa...
 
@@ -111,7 +104,6 @@ int main(int argc, const char* argv[]){
 	blur<<<in_image.cols*in_image.rows/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image[1], dev_out_image[1], dev_cols, dev_rows);
 	blur<<<in_image.cols*in_image.rows/nThreadsPorBloco,nThreadsPorBloco>>>( dev_in_image[2], dev_out_image[2], dev_cols, dev_rows);
 
-    tempo = time(NULL) - inicioTempo;
     //Filtro Aplicado.
     //Copiando vetor para memoria principal...
 
@@ -144,7 +136,6 @@ int main(int argc, const char* argv[]){
 
 	imwrite(argv[1], in_image);
 
-    tempo = time(NULL) - inicioTempo;
     //Liberando memoria...
 
     in_image.release();
@@ -152,7 +143,6 @@ int main(int argc, const char* argv[]){
     cudaFree( dev_in_image );
     cudaFree( dev_out_image );
 
-    tempo = time(NULL) - inicioTempo;
     //Memoria liberada.
     
     return 0;
