@@ -116,16 +116,6 @@ int main(int argc, const char* argv[]){
 
 	imwrite(argv[2], out_image);
 
-	for(int i = 0; i < out_image.rows; i++){
-        for(int j = 0; j < out_image.cols; j++){
-            in_image.at<Vec3b>(i, j)[0] = int_in_image[0][i * in_image.cols + j];
-            in_image.at<Vec3b>(i, j)[1] = int_in_image[0][i * in_image.cols + j + imageSize];
-            in_image.at<Vec3b>(i, j)[2] = int_in_image[0][i * in_image.cols + j + 2*imageSize];
-        }
-    }
-
-	imwrite(argv[1], in_image);
-
     //Liberando memoria...
 
     in_image.release();
